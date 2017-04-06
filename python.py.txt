@@ -1,0 +1,65 @@
+import json
+import pyaudio
+import wave
+from os.path import join, dirname
+from watson_developer_cloud import SpeechToTextV1
+
+
+
+
+def record(myFile):
+	CHUNK = 1024 
+	FORMAT = pyaudio.paInt16 #paInt8
+	CHANNELS = 2 
+	RATE = 44100 #sample rate
+	RECORD_SECONDS = 5
+	WAVE_OUTPUT_FILENAME = myFile
+
+	p = pyaudio.PyAudio()
+
+	stream = p.open(format=FORMAT,
+	                channels=CHANNELS,
+	                rate=RATE,
+	                input=True,
+	                frames_per_buffer=CHUNK) #buffer
+
+	print("* recording")
+
+	frames = []
+
+	for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+	    data = stream.read(CHUNK)
+	    frames.append(data) # 2 bytes(16 bits) per channel
+
+	print("* done recording")
+
+	stream.stop_stream()
+	stream.close()
+	p.terminate()
+
+
+	#print(frames)
+
+	wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+	wf.setnchannels(CHANNELS)
+	wf.setsampwidth(p.get_sample_size(FORMAT))
+	wf.setframerate(RATE)
+	wf.writeframes(b''.join(frames))
+	wf.close()
+
+speech_to_text = SpeechToTextV1(username= "04659ee2-f648-4c91-b97a-8fc36fc9a92f",password= "Hk4vJ0nPZ0bA",x_watson_learning_opt_out=False)
+record('output.wav')
+audio_file= open('output.wav','rb')
+
+str=json.dumps(speech_to_text.recognize(
+      audio_file, content_type='audio/wav', timestamps=True,
+      word_confidence=True),indent=2)
+dict=json.loads(str)
+s=""
+try:
+      s=(dict['results'][0]['alternatives'][0]["transcript"])
+except:
+      s=("Colud not recognise the voice :(. Please try again.")
+print s
+ 
+
